@@ -45,6 +45,7 @@ type WebHookSink struct {
 	bodyTemplate           string
 	bodyConfigMapName      string
 	bodyConfigMapNamespace string
+	ExcludeReasons         []string
 }
 
 func (ws *WebHookSink) Name() string {
@@ -66,6 +67,26 @@ func (ws *WebHookSink) ExportEvents(batch *core.EventBatch) {
 func (ws *WebHookSink) Send(event *v1.Event) (err error) {
 	for _, v := range ws.filters {
 		if !v.Filter(event) {
+			return
+		}
+	}
+
+	// check if the event is in the exclude reason list
+	if ws.ExcludeReasons != nil {
+		skip := false
+		for _, reason := range ws.ExcludeReasons {
+			nr := strings.Split(reason, "/")
+			if len(nr) > 1 && nr[0] == event.Namespace && nr[1] == event.Reason {
+				skip = true
+				break
+			}
+			if len(nr) == 1 && nr[0] == event.Reason {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			klog.Infof("skip event: kind=%v, namespace=%v, name=%v, reason=%v\n", event.InvolvedObject.Kind, event.Namespace, event.Name, event.Reason)
 			return
 		}
 	}
@@ -219,6 +240,11 @@ func NewWebHookSink(uri *url.URL) (*WebHookSink, error) {
 		} else {
 			s.bodyTemplate = content
 		}
+	}
+
+	if len(opts["exclude_reasons"]) >= 1 {
+		s.ExcludeReasons = filters.GetValues(opts["exclude_reasons"])
+		klog.Infof("exclude_reasons=%#v\n", s.ExcludeReasons)
 	}
 
 	return s, nil

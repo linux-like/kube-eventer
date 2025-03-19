@@ -14,6 +14,7 @@ The following options are available:
 * `header` - Header in request (optional. default: empty). You can use multi header field in query.
 * `custom_body_configmap` - The configmap name of request body template. You can use Template to customize request body. (optional.)
 * `custom_body_configmap_namespace` -  The configmap namespace of request body template. (optional.)
+* `exclude_reasons` - Ignore events for a specific reason of a specific namespace, format: [NAMESPACE/]REASON, NAMESPACE can be empty for all namespaces. (default empty,use commas to separate multi items, e.g., SystemOOM,test/Unhealthy)[Optional]
 
 For example:
 
